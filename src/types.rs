@@ -35,6 +35,8 @@ pub struct Options {
     pub force_balance: bool,
     #[serde(default = "Options::default_false")]
     pub return_parens: bool,
+    #[serde(default = "Options::default_false")]
+    pub long_strings: bool,
 }
 
 impl Options {

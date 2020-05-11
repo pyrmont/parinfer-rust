@@ -182,6 +182,7 @@ struct State<'a> {
     is_in_comment: bool,
     comment_x: Option<Column>,
 
+    long_strings_enabled: bool,
     str_started: bool,
     quote_open_delim: String,
     quote_close_delim: String,
@@ -265,6 +266,7 @@ fn get_initial_result<'a>(
         is_in_comment: false,
         comment_x: None,
 
+        long_strings_enabled: options.long_strings,
         str_started: false,
         quote_open_delim: String::with_capacity(5),
         quote_close_delim: String::with_capacity(5),
@@ -824,6 +826,10 @@ fn on_quote<'a>(result: &mut State<'a>) {
 }
 
 fn on_lquote<'a>(result: &mut State<'a>) {
+    if !result.long_strings_enabled {
+        return;
+    }
+
     if result.is_in_str && is_valid_quote(&result.quote_open_delim, result.ch) {
         if result.str_started {
             result.quote_close_delim.push_str(result.ch);

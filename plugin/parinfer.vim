@@ -7,6 +7,9 @@ endif
 if !exists('g:parinfer_force_balance')
   let g:parinfer_force_balance = 0
 endif
+if !exists('g:parinfer_long_strings')
+  let g:parinfer_long_strings = 0;
+endif
 
 if !exists('g:parinfer_dylib_path')
   let s:libdir = expand('<sfile>:p:h:h') . '/target/release'
@@ -28,6 +31,9 @@ endif
 
 command! ParinferOn let g:parinfer_enabled = 1
 command! ParinferOff let g:parinfer_enabled = 0
+
+" Long strings settings
+au BufNewFile,BufRead *.janet let b:parinfer_long_strings = 1
 
 " Logging {{{1
 
@@ -134,6 +140,9 @@ function! s:process_buffer() abort
   if !exists('b:parinfer_last_changedtick')
     call s:enter_buffer()
   endif
+  if !exists('b:parinfer_long_strings')
+    let b:parinfer_long_strings = g:parinfer_long_strings
+  endif
   if b:parinfer_last_changedtick != b:changedtick
     let l:cursor = s:get_cursor_position()
     let l:orig_lines = getline(1,'$')
@@ -143,6 +152,7 @@ function! s:process_buffer() abort
                     \ "options": { "cursorX": l:cursor[2],
                                  \ "cursorLine": l:cursor[1],
                                  \ "forceBalance": g:parinfer_force_balance ? v:true : v:false,
+                                 \ "longStrings": b:parinfer_long_strings ? v:true : v:false,
                                  \ "prevCursorX": w:parinfer_previous_cursor[2],
                                  \ "prevCursorLine": w:parinfer_previous_cursor[1],
                                  \ "prevText": b:parinfer_previous_text } }

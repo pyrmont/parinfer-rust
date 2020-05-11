@@ -95,7 +95,8 @@ impl Options {
                         force_balance: false,
                         return_parens: false,
                         partial_result: false,
-                        selection_start_line: None
+                        selection_start_line: None,
+                        long_strings: false
                     }
                 })
             },
@@ -122,7 +123,8 @@ impl Options {
                         force_balance: false,
                         return_parens: false,
                         partial_result: false,
-                        selection_start_line: None
+                        selection_start_line: None,
+                        long_strings: false
                     }
                 })
             },
