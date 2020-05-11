@@ -8,7 +8,7 @@ if !exists('g:parinfer_force_balance')
   let g:parinfer_force_balance = 0
 endif
 if !exists('g:parinfer_long_strings')
-  let g:parinfer_long_strings = 0;
+  let g:parinfer_long_strings = 0
 endif
 
 if !exists('g:parinfer_dylib_path')
