@@ -15,6 +15,7 @@ const DOUBLE_QUOTE: &'static str = "\"";
 const NEWLINE: &'static str = "\n";
 const SEMICOLON: &'static str = ";";
 const TAB: &'static str = "\t";
+const TILDE: &'static str = "`";
 
 fn match_paren(paren: &str) -> Option<&'static str> {
     match paren {
@@ -181,6 +182,10 @@ struct State<'a> {
     is_in_comment: bool,
     comment_x: Option<Column>,
 
+    str_started: bool,
+    quote_open_delim: String,
+    quote_close_delim: String,
+
     quote_danger: bool,
     tracking_indent: bool,
     skip_char: bool,
@@ -259,6 +264,10 @@ fn get_initial_result<'a>(
         is_in_str: false,
         is_in_comment: false,
         comment_x: None,
+
+        str_started: false,
+        quote_open_delim: String::with_capacity(5),
+        quote_close_delim: String::with_capacity(5),
 
         quote_danger: false,
         tracking_indent: false,
@@ -612,6 +621,16 @@ fn is_closable<'a>(result: &State<'a>) -> bool {
     return result.is_in_code && !is_whitespace(result) && ch != "" && !closer;
 }
 
+fn is_valid_quote<'a>(delim: &'a str, ch: &'a str) -> bool {
+    if delim.is_empty() {
+        return true;
+    } else if delim.contains(ch) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 // {{{1 Advanced operations on characters
 
 fn check_cursor_holding<'a>(result: &State<'a>) -> Result<bool> {
@@ -791,7 +810,7 @@ fn on_newline<'a>(result: &mut State<'a>) {
 }
 
 fn on_quote<'a>(result: &mut State<'a>) {
-    if result.is_in_str {
+    if result.is_in_str && is_valid_quote(&result.quote_open_delim, result.ch) {
         result.is_in_str = false;
     } else if result.is_in_comment {
         result.quote_danger = !result.quote_danger;
@@ -800,6 +819,32 @@ fn on_quote<'a>(result: &mut State<'a>) {
         }
     } else {
         result.is_in_str = true;
+        cache_error_pos(result, ErrorName::UnclosedQuote);
+    }
+}
+
+fn on_lquote<'a>(result: &mut State<'a>) {
+    if result.is_in_str && is_valid_quote(&result.quote_open_delim, result.ch) {
+        if result.str_started {
+            result.quote_close_delim.push_str(result.ch);
+            if result.quote_open_delim.len() == result.quote_close_delim.len() {
+                result.is_in_str = false;
+                result.str_started = false;
+                result.quote_open_delim.clear();
+                result.quote_close_delim.clear();
+            }
+        } else {
+            result.quote_open_delim.push_str(result.ch);
+        }
+    } else if result.is_in_comment {
+        result.quote_danger = !result.quote_danger;
+        if result.quote_danger {
+            cache_error_pos(result, ErrorName::QuoteDanger);
+        }
+    } else {
+        result.is_in_str = true;
+        result.str_started = false;
+        result.quote_open_delim.push_str(result.ch);
         cache_error_pos(result, ErrorName::UnclosedQuote);
     }
 }
@@ -835,6 +880,8 @@ fn on_char<'a>(result: &mut State<'a>) -> Result<()> {
         on_close_paren(result)?;
     } else if ch == DOUBLE_QUOTE {
         on_quote(result);
+    } else if ch == TILDE {
+        on_lquote(result);
     } else if ch == SEMICOLON {
         on_semicolon(result);
     } else if ch == BACKSLASH {
@@ -843,6 +890,10 @@ fn on_char<'a>(result: &mut State<'a>) -> Result<()> {
         on_tab(result);
     } else if ch == NEWLINE {
         on_newline(result);
+    }
+
+    if result.is_in_str && ch != TILDE {
+        result.str_started = true;
     }
 
     ch = result.ch;
